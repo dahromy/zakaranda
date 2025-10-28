@@ -56,7 +56,7 @@ Select applications to theme:
 
 **macOS Intel (x86_64):**
 ```bash
-curl -L https://github.com/YOUR_USERNAME/zakaranda/releases/latest/download/zakaranda-darwin-amd64.tar.gz | tar xz
+curl -L https://github.com/dahromy/zakaranda/releases/latest/download/zakaranda-darwin-amd64.tar.gz | tar xz
 cd zakaranda-darwin-amd64
 sudo mv zakaranda /usr/local/bin/
 sudo mkdir -p /usr/local/share/zakaranda
@@ -65,7 +65,7 @@ sudo cp -r assets /usr/local/share/zakaranda/
 
 **macOS Apple Silicon (ARM64):**
 ```bash
-curl -L https://github.com/YOUR_USERNAME/zakaranda/releases/latest/download/zakaranda-darwin-arm64.tar.gz | tar xz
+curl -L https://github.com/dahromy/zakaranda/releases/latest/download/zakaranda-darwin-arm64.tar.gz | tar xz
 cd zakaranda-darwin-arm64
 sudo mv zakaranda /usr/local/bin/
 sudo mkdir -p /usr/local/share/zakaranda
@@ -76,7 +76,7 @@ sudo cp -r assets /usr/local/share/zakaranda/
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/YOUR_USERNAME/zakaranda.git
+   git clone https://github.com/dahromy/zakaranda.git
    cd zakaranda
    ```
 
