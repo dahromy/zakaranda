@@ -78,10 +78,10 @@ func (s *SlackIntegration) Apply(t theme.Theme) error {
 func (s *SlackIntegration) generateSlackTheme(colors theme.ColorPalette) string {
 	// Map the 18-color terminal palette to Slack's 4 UI colors
 	slackColors := []string{
-		colors.Background,   // 1. System navigation - use background color
-		colors.Blue,         // 2. Selected items - use blue for active selection
-		colors.Green,        // 3. Presence indication - use green for online status
-		colors.Red,          // 4. Notifications - use red for alerts/mentions
+		colors.Background, // 1. System navigation - use background color
+		colors.Blue,       // 2. Selected items - use blue for active selection
+		colors.Green,      // 3. Presence indication - use green for online status
+		colors.Red,        // 4. Notifications - use red for alerts/mentions
 	}
 
 	// Join with commas (Slack expects comma-separated hex codes with # prefix)
@@ -112,4 +112,3 @@ func (s *SlackIntegration) tryOpenSlackPreferences() {
 	// This is just a convenience feature
 	_ = cmd.Run()
 }
-
