@@ -52,9 +52,31 @@ Select applications to theme:
 
 ### Installation
 
+#### Option 1: Download Pre-built Binary (Recommended)
+
+**macOS Intel (x86_64):**
+```bash
+curl -L https://github.com/YOUR_USERNAME/zakaranda/releases/latest/download/zakaranda-darwin-amd64.tar.gz | tar xz
+cd zakaranda-darwin-amd64
+sudo mv zakaranda /usr/local/bin/
+sudo mkdir -p /usr/local/share/zakaranda
+sudo cp -r assets /usr/local/share/zakaranda/
+```
+
+**macOS Apple Silicon (ARM64):**
+```bash
+curl -L https://github.com/YOUR_USERNAME/zakaranda/releases/latest/download/zakaranda-darwin-arm64.tar.gz | tar xz
+cd zakaranda-darwin-arm64
+sudo mv zakaranda /usr/local/bin/
+sudo mkdir -p /usr/local/share/zakaranda
+sudo cp -r assets /usr/local/share/zakaranda/
+```
+
+#### Option 2: Build from Source
+
 1. **Clone the repository**
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/YOUR_USERNAME/zakaranda.git
    cd zakaranda
    ```
 
@@ -71,8 +93,8 @@ Select applications to theme:
 4. **(Optional) Install globally**
    ```bash
    sudo mv zakaranda /usr/local/bin/
-   # Now you can run it from anywhere
-   zakaranda
+   sudo mkdir -p /usr/local/share/zakaranda
+   sudo cp -r assets /usr/local/share/zakaranda/
    ```
 
 ## 📖 Usage

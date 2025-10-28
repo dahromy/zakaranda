@@ -1,0 +1,117 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: macos-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.21'
+        cache: true
+
+    - name: Get version from tag
+      id: get_version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+    - name: Build binaries
+      run: |
+        # Build for macOS Intel
+        GOOS=darwin GOARCH=amd64 go build -o zakaranda-darwin-amd64 ./cmd/zakaranda
+        chmod +x zakaranda-darwin-amd64
+        
+        # Build for macOS Apple Silicon
+        GOOS=darwin GOARCH=arm64 go build -o zakaranda-darwin-arm64 ./cmd/zakaranda
+        chmod +x zakaranda-darwin-arm64
+        
+        # Create archives with assets
+        mkdir -p release/zakaranda-darwin-amd64
+        mkdir -p release/zakaranda-darwin-arm64
+        
+        # Copy binaries
+        cp zakaranda-darwin-amd64 release/zakaranda-darwin-amd64/zakaranda
+        cp zakaranda-darwin-arm64 release/zakaranda-darwin-arm64/zakaranda
+        
+        # Copy assets
+        cp -r assets release/zakaranda-darwin-amd64/
+        cp -r assets release/zakaranda-darwin-arm64/
+        
+        # Copy documentation
+        cp README.md LICENSE release/zakaranda-darwin-amd64/
+        cp README.md LICENSE release/zakaranda-darwin-arm64/
+        
+        # Create tar.gz archives
+        cd release
+        tar -czf zakaranda-darwin-amd64.tar.gz zakaranda-darwin-amd64
+        tar -czf zakaranda-darwin-arm64.tar.gz zakaranda-darwin-arm64
+        cd ..
+
+    - name: Generate checksums
+      run: |
+        cd release
+        shasum -a 256 *.tar.gz > checksums.txt
+        cd ..
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          release/zakaranda-darwin-amd64.tar.gz
+          release/zakaranda-darwin-arm64.tar.gz
+          release/checksums.txt
+        body: |
+          ## Zakaranda ${{ steps.get_version.outputs.VERSION }}
+          
+          A unified theme manager for macOS that applies consistent color schemes across multiple applications.
+          
+          ### 🎨 Features
+          - 3 Beautiful Themes: Nord, Catppuccin (4 variants), Rose Pine (3 variants)
+          - 7 Application Integrations: VS Code, Alacritty, Warp, iTerm2, Starship, Zed, macOS Wallpaper
+          - Live theme preview with color palettes
+          - Automatic backups before modifications
+          
+          ### 📦 Installation
+          
+          **macOS Intel (x86_64):**
+          ```bash
+          curl -L https://github.com/${{ github.repository }}/releases/download/${{ steps.get_version.outputs.VERSION }}/zakaranda-darwin-amd64.tar.gz | tar xz
+          cd zakaranda-darwin-amd64
+          sudo mv zakaranda /usr/local/bin/
+          sudo mkdir -p /usr/local/share/zakaranda
+          sudo cp -r assets /usr/local/share/zakaranda/
+          ```
+          
+          **macOS Apple Silicon (ARM64):**
+          ```bash
+          curl -L https://github.com/${{ github.repository }}/releases/download/${{ steps.get_version.outputs.VERSION }}/zakaranda-darwin-arm64.tar.gz | tar xz
+          cd zakaranda-darwin-arm64
+          sudo mv zakaranda /usr/local/bin/
+          sudo mkdir -p /usr/local/share/zakaranda
+          sudo cp -r assets /usr/local/share/zakaranda/
+          ```
+          
+          ### 🚀 Usage
+          ```bash
+          zakaranda
+          ```
+          
+          ### 📋 What's Changed
+          See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details.
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+

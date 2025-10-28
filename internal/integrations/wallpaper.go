@@ -22,13 +22,34 @@ func NewWallpaperIntegration() *WallpaperIntegration {
 	}
 	wallpaperPath := filepath.Join(home, ".config", "zakaranda", "wallpapers")
 
-	// Get the executable path to find assets
+	// Try to find assets in multiple locations
+	var assetsPath string
+
+	// 1. Try next to the executable (for local builds)
 	execPath, err := os.Executable()
-	if err != nil {
-		return &WallpaperIntegration{wallpaperPath: wallpaperPath, assetsPath: ""}
+	if err == nil {
+		execDir := filepath.Dir(execPath)
+		localAssets := filepath.Join(execDir, "assets", "wallpapers")
+		if _, err := os.Stat(localAssets); err == nil {
+			assetsPath = localAssets
+		}
 	}
-	execDir := filepath.Dir(execPath)
-	assetsPath := filepath.Join(execDir, "assets", "wallpapers")
+
+	// 2. Try global installation path
+	if assetsPath == "" {
+		globalAssets := "/usr/local/share/zakaranda/assets/wallpapers"
+		if _, err := os.Stat(globalAssets); err == nil {
+			assetsPath = globalAssets
+		}
+	}
+
+	// 3. Try relative to current directory (for development)
+	if assetsPath == "" {
+		relativeAssets := "assets/wallpapers"
+		if _, err := os.Stat(relativeAssets); err == nil {
+			assetsPath = relativeAssets
+		}
+	}
 
 	return &WallpaperIntegration{
 		wallpaperPath: wallpaperPath,
