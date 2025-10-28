@@ -12,4 +12,3 @@ func GetAllIntegrations() []Integration {
 		NewWallpaperIntegration(),
 	}
 }
-

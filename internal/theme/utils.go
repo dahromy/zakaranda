@@ -13,4 +13,3 @@ func SanitizeFileName(name string) string {
 	}
 	return result
 }
-

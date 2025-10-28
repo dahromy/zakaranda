@@ -28,4 +28,3 @@ type ColorPalette struct {
 	BrightCyan    string
 	BrightWhite   string
 }
-
