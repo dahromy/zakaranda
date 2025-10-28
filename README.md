@@ -9,7 +9,7 @@ A unified theme manager for macOS that applies consistent color schemes across m
 ## ✨ Features
 
 - 🎭 **3 Beautiful Themes**: Nord, Catppuccin (4 variants), and Rose Pine (3 variants)
-- 🖥️ **7 Application Integrations**: VS Code, Alacritty, Warp, iTerm2, Starship, Zed, and macOS Wallpaper
+- 🖥️ **8 Application Integrations**: VS Code, Alacritty, Warp, iTerm2, Starship, Zed, Slack, and macOS Wallpaper
 - 👁️ **Live Preview**: Preview themes with color palettes before applying
 - 🎨 **Custom Themes**: Load your own themes from JSON/YAML/TOML files
 - 💾 **Automatic Backups**: Creates `.backup` files before modifying configs
@@ -40,6 +40,7 @@ Select applications to theme:
 ✓ Starship
 ✓ Zed
 ✓ Wallpaper
+✓ Slack
 ```
 
 ## 🚀 Quick Start
@@ -197,6 +198,12 @@ Load it by selecting "Load Custom Theme" from the menu.
 - **Features**: Sets macOS desktop wallpaper to match theme
 - **Wallpapers**: Stored in `~/.config/zakaranda/wallpapers/`
 
+### Slack
+- **Config**: Manual (copy to clipboard)
+- **Features**: Generates 4-color theme string for Slack's custom theme
+- **Colors**: System navigation, Selected items, Presence indication, Notifications
+- **Note**: Theme string is automatically copied to clipboard. Paste in Slack → Preferences → Appearance → Custom theme
+
 ## 🛠️ Development
 
 ### Project Structure
@@ -224,6 +231,7 @@ zakaranda/
     │   ├── iterm2.go       # iTerm2 integration
     │   ├── starship.go     # Starship integration
     │   ├── zed.go          # Zed integration
+    │   ├── slack.go        # Slack integration
     │   └── wallpaper.go    # Wallpaper integration
     ├── theme/              # Theme logic
     │   ├── theme.go        # Theme types

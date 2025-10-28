@@ -5,6 +5,15 @@ All notable changes to Zakaranda will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- Slack integration with automatic clipboard copy
+  - Generates 4-color theme string for Slack's custom theme
+  - Automatically copies theme to clipboard
+  - Provides clear instructions for manual application in Slack
+  - Maps terminal colors to Slack UI colors (System navigation, Selected items, Presence indication, Notifications)
+
 ## [1.0.0] - 2025-10-28
 
 ### Added

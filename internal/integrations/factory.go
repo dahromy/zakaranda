@@ -10,5 +10,6 @@ func GetAllIntegrations() []Integration {
 		NewStarshipIntegration(),
 		NewZedIntegration(),
 		NewWallpaperIntegration(),
+		NewSlackIntegration(),
 	}
 }
