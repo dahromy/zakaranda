@@ -5,7 +5,7 @@ All notable changes to Zakaranda will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.1.0] - 2025-10-28
 
 ### Added
 - Slack integration with automatic clipboard copy
@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Automatically copies theme to clipboard
   - Provides clear instructions for manual application in Slack
   - Maps terminal colors to Slack UI colors (System navigation, Selected items, Presence indication, Notifications)
+- New dependency: `github.com/atotto/clipboard` for cross-platform clipboard support
 
 ## [1.0.0] - 2025-10-28
 
