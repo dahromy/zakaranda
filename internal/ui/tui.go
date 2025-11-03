@@ -264,7 +264,7 @@ func (m model) applyThemes() tea.Cmd {
 		for idx, selected := range m.selectedApps {
 			if selected {
 				app := m.apps[idx]
-				
+
 				// Special handling for VS Code - apply to all selected variants
 				if app.Name() == "VS Code" {
 					vscode, ok := app.(*integrations.VSCodeIntegration)
@@ -272,7 +272,7 @@ func (m model) applyThemes() tea.Cmd {
 						results = append(results, fmt.Sprintf("❌ VS Code: Type assertion failed"))
 						continue
 					}
-					
+
 					// Check if any variants were selected
 					hasSelectedVariants := false
 					for _, variantSelected := range m.selectedVSCVariants {
@@ -281,23 +281,23 @@ func (m model) applyThemes() tea.Cmd {
 							break
 						}
 					}
-					
+
 					if !hasSelectedVariants {
 						results = append(results, fmt.Sprintf("⚠️  VS Code: No variants selected"))
 						continue
 					}
-					
+
 					// Apply theme to each selected variant
 					for variantIdx, variantSelected := range m.selectedVSCVariants {
 						if variantSelected && variantIdx < len(m.vscodeVariants) {
 							variant := m.vscodeVariants[variantIdx]
 							vscode.SetVariant(variant)
-							
+
 							if !vscode.IsInstalled() {
 								results = append(results, fmt.Sprintf("⚠️  %s: Not installed or not found", variant.Name))
 								continue
 							}
-							
+
 							err := vscode.Apply(theme)
 							if err != nil {
 								results = append(results, fmt.Sprintf("❌ %s: %v", variant.Name, err))
@@ -308,7 +308,7 @@ func (m model) applyThemes() tea.Cmd {
 					}
 					continue
 				}
-				
+
 				// For non-VSCode apps, apply normally
 				if !app.IsInstalled() {
 					results = append(results, fmt.Sprintf("⚠️  %s: Not installed or not found", app.Name()))
