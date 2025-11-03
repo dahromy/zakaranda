@@ -138,7 +138,7 @@ func GetVSCodeVariants() []VSCodeVariant {
 			// Combine checks to reduce system calls
 			_, configErr := os.Stat(variant.ConfigDir)
 			_, appErr := os.Stat(variant.AppPath)
-			
+
 			if configErr == nil || appErr == nil {
 				installed = append(installed, variant)
 			}
@@ -156,7 +156,7 @@ func stripJSONComments(jsonStr string) string {
 	var result strings.Builder
 	// Pre-allocate buffer size to avoid reallocations
 	result.Grow(len(jsonStr))
-	
+
 	inString := false
 	inSingleLineComment := false
 	inMultiLineComment := false
@@ -445,7 +445,6 @@ func (v *VSCodeIntegration) installExtensionWithCache(codeCmd, extensionID strin
 	fmt.Printf("Successfully installed %s\n", extensionID)
 	return nil
 }
-
 
 func (v *VSCodeIntegration) findVSCodeCLI() string {
 	// First try the variant-specific CLI command

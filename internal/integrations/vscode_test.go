@@ -9,15 +9,15 @@ import (
 func TestGetVSCodeVariantsCaching(t *testing.T) {
 	// First call should populate the cache
 	variants1 := GetVSCodeVariants()
-	
+
 	// Second call should return the same cached slice
 	variants2 := GetVSCodeVariants()
-	
+
 	// Verify the slices have the same length
 	if len(variants1) != len(variants2) {
 		t.Error("Expected variants to have the same length")
 	}
-	
+
 	// Verify caching is working by comparing slice headers
 	// If caching works, both should point to the same underlying array
 	if len(variants1) > 0 && len(variants2) > 0 {
@@ -32,9 +32,9 @@ func TestGetVSCodeVariantsContent(t *testing.T) {
 	// Reset cache to test fresh scan
 	vscodeVariantsCache = nil
 	vscodeVariantsMutex = sync.Once{}
-	
+
 	variants := GetVSCodeVariants()
-	
+
 	// Verify all variants have required fields
 	for _, variant := range variants {
 		if variant.Name == "" {
@@ -57,7 +57,7 @@ func BenchmarkGetVSCodeVariants(b *testing.B) {
 	// Clear cache before benchmark
 	vscodeVariantsCache = nil
 	vscodeVariantsMutex = sync.Once{}
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		GetVSCodeVariants()
@@ -68,7 +68,7 @@ func BenchmarkGetVSCodeVariants(b *testing.B) {
 func BenchmarkGetVSCodeVariantsCached(b *testing.B) {
 	// Populate cache
 	GetVSCodeVariants()
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		GetVSCodeVariants()
@@ -85,7 +85,7 @@ func BenchmarkStripJSONComments(b *testing.B) {
 		"key2": "value2",
 		"key3": "value3" // Inline comment
 	}`
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		stripJSONComments(testJSON)

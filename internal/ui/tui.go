@@ -70,7 +70,7 @@ func initialModel() model {
 	baseThemes := theme.GetBuiltInBaseThemes()
 	themes := theme.GetBuiltInThemes()
 	apps := integrations.GetAllIntegrations()
-	
+
 	// Cache VS Code variants during initialization to avoid repeated calls
 	vscodeVariants := integrations.GetVSCodeVariants()
 

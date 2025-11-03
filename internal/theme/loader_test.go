@@ -8,21 +8,21 @@ import (
 func TestGetBuiltInThemesCaching(t *testing.T) {
 	// Clear cache for testing
 	builtInThemesCache = nil
-	
+
 	// First call should populate the cache
 	themes1 := GetBuiltInThemes()
 	if len(themes1) == 0 {
 		t.Fatal("Expected at least one built-in theme")
 	}
-	
+
 	// Second call should return the same cached slice
 	themes2 := GetBuiltInThemes()
-	
+
 	// Verify the slices are identical (same memory address)
 	if &themes1[0] != &themes2[0] {
 		t.Error("Expected themes to be cached and return the same slice")
 	}
-	
+
 	// Verify we have the expected number of themes (Nord + 4 Catppuccin + 3 Rose Pine = 8)
 	expectedCount := 8
 	if len(themes1) != expectedCount {
@@ -33,7 +33,7 @@ func TestGetBuiltInThemesCaching(t *testing.T) {
 // TestGetBuiltInThemesContent verifies theme content is correct
 func TestGetBuiltInThemesContent(t *testing.T) {
 	themes := GetBuiltInThemes()
-	
+
 	// Verify all themes have required fields
 	for _, theme := range themes {
 		if theme.Name == "" {
@@ -55,7 +55,7 @@ func TestGetBuiltInThemesContent(t *testing.T) {
 func BenchmarkGetBuiltInThemes(b *testing.B) {
 	// Clear cache before benchmark
 	builtInThemesCache = nil
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		GetBuiltInThemes()
@@ -66,7 +66,7 @@ func BenchmarkGetBuiltInThemes(b *testing.B) {
 func BenchmarkGetBuiltInThemesCached(b *testing.B) {
 	// Populate cache
 	GetBuiltInThemes()
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		GetBuiltInThemes()

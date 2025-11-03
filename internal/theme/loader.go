@@ -447,14 +447,14 @@ func GetBuiltInThemes() []Theme {
 	if builtInThemesCache != nil {
 		return builtInThemesCache
 	}
-	
+
 	baseThemes := GetBuiltInBaseThemes()
 	// Pre-calculate total number of themes to avoid slice reallocations
 	totalThemes := 0
 	for _, baseTheme := range baseThemes {
 		totalThemes += len(baseTheme.Variants)
 	}
-	
+
 	themes := make([]Theme, 0, totalThemes)
 	for _, baseTheme := range baseThemes {
 		for _, variant := range baseTheme.Variants {
@@ -465,7 +465,7 @@ func GetBuiltInThemes() []Theme {
 			})
 		}
 	}
-	
+
 	// Cache the result
 	builtInThemesCache = themes
 	return themes
