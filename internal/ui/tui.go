@@ -44,19 +44,19 @@ const (
 )
 
 type model struct {
-	baseThemes         []BaseTheme
-	themes             []Theme
-	selectedBaseTheme  int
-	selectedVariant    int
-	selectedTheme      int
-	apps               []AppIntegration
-	selectedApps       map[int]bool
-	cursor             int
-	state              state
-	err                error
-	results            []string
-	vscodeVariants     []VSCodeVariant
-	selectedVSCVariant int
+	baseThemes          []BaseTheme
+	themes              []Theme
+	selectedBaseTheme   int
+	selectedVariant     int
+	selectedTheme       int
+	apps                []AppIntegration
+	selectedApps        map[int]bool
+	cursor              int
+	state               state
+	err                 error
+	results             []string
+	vscodeVariants      []VSCodeVariant
+	selectedVSCVariants map[int]bool
 }
 
 // Type aliases for imported types
@@ -75,16 +75,17 @@ func initialModel() model {
 	vscodeVariants := integrations.GetVSCodeVariants()
 
 	return model{
-		baseThemes:        baseThemes,
-		themes:            themes,
-		selectedBaseTheme: 0,
-		selectedVariant:   0,
-		selectedTheme:     0,
-		apps:              apps,
-		selectedApps:      make(map[int]bool),
-		cursor:            0,
-		state:             selectingTheme,
-		vscodeVariants:    vscodeVariants,
+		baseThemes:          baseThemes,
+		themes:              themes,
+		selectedBaseTheme:   0,
+		selectedVariant:     0,
+		selectedTheme:       0,
+		apps:                apps,
+		selectedApps:        make(map[int]bool),
+		cursor:              0,
+		state:               selectingTheme,
+		vscodeVariants:      vscodeVariants,
+		selectedVSCVariants: make(map[int]bool),
 	}
 }
 
@@ -164,27 +165,19 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			} else if m.state == selectingApps {
 				// Check if VS Code is selected
 				vscodeSelected := false
-				vscodeIdx := -1
 				for idx, selected := range m.selectedApps {
 					if selected && m.apps[idx].Name() == "VS Code" {
 						vscodeSelected = true
-						vscodeIdx = idx
 						break
 					}
 				}
 
 				if vscodeSelected {
 					// Use cached VS Code variants
-					if len(m.vscodeVariants) > 1 {
-						// Multiple variants available, show selection
+					if len(m.vscodeVariants) > 0 {
+						// Show variant selection
 						m.cursor = 0
 						m.state = selectingVSCodeVariant
-					} else if len(m.vscodeVariants) == 1 {
-						// Only one variant, use it directly
-						m.selectedVSCVariant = 0
-						m.updateVSCodeVariant(vscodeIdx)
-						// After VS Code, proceed to apply themes
-						return m, m.applyThemes()
 					} else {
 						// No variants found, proceed to apply themes
 						return m, m.applyThemes()
@@ -194,14 +187,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, m.applyThemes()
 				}
 			} else if m.state == selectingVSCodeVariant {
-				m.selectedVSCVariant = m.cursor
-				// Find VS Code integration and update it
-				for idx, app := range m.apps {
-					if app.Name() == "VS Code" && m.selectedApps[idx] {
-						m.updateVSCodeVariant(idx)
-						break
-					}
-				}
 				// After VS Code variant selection, proceed to apply themes
 				return m, m.applyThemes()
 			} else if m.state == complete {
@@ -211,6 +196,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case " ":
 			if m.state == selectingApps {
 				m.selectedApps[m.cursor] = !m.selectedApps[m.cursor]
+			} else if m.state == selectingVSCodeVariant {
+				m.selectedVSCVariants[m.cursor] = !m.selectedVSCVariants[m.cursor]
 			}
 
 		case "p":
@@ -240,6 +227,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.selectedApps = make(map[int]bool)
 			} else if m.state == selectingVSCodeVariant {
 				m.cursor = 0
+				m.selectedVSCVariants = make(map[int]bool)
 				m.state = selectingApps
 			}
 		}
@@ -256,13 +244,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 type applyCompleteMsg struct {
 	results []string
 	err     error
-}
-
-func (m *model) updateVSCodeVariant(appIdx int) {
-	if vscode, ok := m.apps[appIdx].(*integrations.VSCodeIntegration); ok {
-		variant := m.vscodeVariants[m.selectedVSCVariant]
-		vscode.SetVariant(variant)
-	}
 }
 
 // calculateThemeIndex calculates the index of the selected theme in the flattened themes list
@@ -283,6 +264,52 @@ func (m model) applyThemes() tea.Cmd {
 		for idx, selected := range m.selectedApps {
 			if selected {
 				app := m.apps[idx]
+				
+				// Special handling for VS Code - apply to all selected variants
+				if app.Name() == "VS Code" {
+					vscode, ok := app.(*integrations.VSCodeIntegration)
+					if !ok {
+						results = append(results, fmt.Sprintf("❌ VS Code: Type assertion failed"))
+						continue
+					}
+					
+					// Check if any variants were selected
+					hasSelectedVariants := false
+					for _, variantSelected := range m.selectedVSCVariants {
+						if variantSelected {
+							hasSelectedVariants = true
+							break
+						}
+					}
+					
+					if !hasSelectedVariants {
+						results = append(results, fmt.Sprintf("⚠️  VS Code: No variants selected"))
+						continue
+					}
+					
+					// Apply theme to each selected variant
+					for variantIdx, variantSelected := range m.selectedVSCVariants {
+						if variantSelected && variantIdx < len(m.vscodeVariants) {
+							variant := m.vscodeVariants[variantIdx]
+							vscode.SetVariant(variant)
+							
+							if !vscode.IsInstalled() {
+								results = append(results, fmt.Sprintf("⚠️  %s: Not installed or not found", variant.Name))
+								continue
+							}
+							
+							err := vscode.Apply(theme)
+							if err != nil {
+								results = append(results, fmt.Sprintf("❌ %s: %v", variant.Name, err))
+							} else {
+								results = append(results, fmt.Sprintf("✅ %s: Theme applied successfully", variant.Name))
+							}
+						}
+					}
+					continue
+				}
+				
+				// For non-VSCode apps, apply normally
 				if !app.IsInstalled() {
 					results = append(results, fmt.Sprintf("⚠️  %s: Not installed or not found", app.Name()))
 					continue
@@ -370,9 +397,13 @@ func (m model) View() string {
 
 	case selectingVSCodeVariant:
 		s += successStyle.Render(fmt.Sprintf("Theme: %s", m.themes[m.selectedTheme].Name)) + "\n\n"
-		s += normalStyle.Render("Multiple VS Code variants detected. Select one:") + "\n\n"
+		s += normalStyle.Render("Select VS Code variants (multiple allowed):") + "\n\n"
 		for i, variant := range m.vscodeVariants {
 			cursor := " "
+			checkbox := "[ ]"
+			if m.selectedVSCVariants[i] {
+				checkbox = "[✓]"
+			}
 			status := ""
 
 			// Check if variant is actually installed
@@ -384,13 +415,13 @@ func (m model) View() string {
 
 			if m.cursor == i {
 				cursor = ">"
-				s += selectedStyle.Render(fmt.Sprintf("%s %s%s", cursor, variant.Name, status)) + "\n"
+				s += selectedStyle.Render(fmt.Sprintf("%s %s %s%s", cursor, checkbox, variant.Name, status)) + "\n"
 				s += dimStyle.Render(fmt.Sprintf("   Config: %s", variant.ConfigDir)) + "\n"
 			} else {
-				s += normalStyle.Render(fmt.Sprintf("%s %s%s", cursor, variant.Name, status)) + "\n"
+				s += normalStyle.Render(fmt.Sprintf("%s %s %s%s", cursor, checkbox, variant.Name, status)) + "\n"
 			}
 		}
-		s += "\n" + dimStyle.Render("↑/↓: navigate • enter: select • esc: back • q: quit")
+		s += "\n" + dimStyle.Render("↑/↓: navigate • space: toggle • enter: apply • esc: back • q: quit")
 
 	case applying:
 		s += normalStyle.Render("Applying themes...") + "\n"
