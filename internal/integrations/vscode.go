@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"zakaranda/internal/theme"
 )
 
@@ -22,6 +23,12 @@ type VSCodeVariant struct {
 	CLICommand string
 	AppPath    string
 }
+
+var (
+	// Cache for VS Code variants to avoid repeated file system checks
+	vscodeVariantsCache []VSCodeVariant
+	vscodeVariantsMutex sync.Once
+)
 
 // VSCodeThemeExtension represents a VS Code theme extension
 type VSCodeThemeExtension struct {
@@ -94,58 +101,62 @@ var iconThemeExtensions = map[string]string{
 
 // GetVSCodeVariants returns all available VS Code variants on the system
 func GetVSCodeVariants() []VSCodeVariant {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return nil
-	}
-
-	variants := []VSCodeVariant{
-		{
-			Name:       "VS Code",
-			ConfigDir:  filepath.Join(home, "Library", "Application Support", "Code"),
-			CLICommand: "code",
-			AppPath:    "/Applications/Visual Studio Code.app",
-		},
-		{
-			Name:       "VS Code Insiders",
-			ConfigDir:  filepath.Join(home, "Library", "Application Support", "Code - Insiders"),
-			CLICommand: "code-insiders",
-			AppPath:    "/Applications/Visual Studio Code - Insiders.app",
-		},
-		{
-			Name:       "Cursor",
-			ConfigDir:  filepath.Join(home, "Library", "Application Support", "Cursor"),
-			CLICommand: "cursor",
-			AppPath:    "/Applications/Cursor.app",
-		},
-	}
-
-	// Filter to only installed variants
-	var installed []VSCodeVariant
-	for _, variant := range variants {
-		// Check if config directory exists OR app is installed
-		configExists := false
-		if _, err := os.Stat(variant.ConfigDir); err == nil {
-			configExists = true
+	// Use sync.Once to ensure we only scan for variants once
+	vscodeVariantsMutex.Do(func() {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			vscodeVariantsCache = nil
+			return
 		}
 
-		appExists := false
-		if _, err := os.Stat(variant.AppPath); err == nil {
-			appExists = true
+		variants := []VSCodeVariant{
+			{
+				Name:       "VS Code",
+				ConfigDir:  filepath.Join(home, "Library", "Application Support", "Code"),
+				CLICommand: "code",
+				AppPath:    "/Applications/Visual Studio Code.app",
+			},
+			{
+				Name:       "VS Code Insiders",
+				ConfigDir:  filepath.Join(home, "Library", "Application Support", "Code - Insiders"),
+				CLICommand: "code-insiders",
+				AppPath:    "/Applications/Visual Studio Code - Insiders.app",
+			},
+			{
+				Name:       "Cursor",
+				ConfigDir:  filepath.Join(home, "Library", "Application Support", "Cursor"),
+				CLICommand: "cursor",
+				AppPath:    "/Applications/Cursor.app",
+			},
 		}
 
-		if configExists || appExists {
-			installed = append(installed, variant)
-		}
-	}
+		// Filter to only installed variants
+		// Pre-allocate slice with maximum possible size to avoid reallocations
+		installed := make([]VSCodeVariant, 0, len(variants))
+		for _, variant := range variants {
+			// Check if config directory exists OR app is installed
+			// Combine checks to reduce system calls
+			_, configErr := os.Stat(variant.ConfigDir)
+			_, appErr := os.Stat(variant.AppPath)
 
-	return installed
+			if configErr == nil || appErr == nil {
+				installed = append(installed, variant)
+			}
+		}
+
+		vscodeVariantsCache = installed
+	})
+
+	return vscodeVariantsCache
 }
 
 // stripJSONComments removes single-line (//) and multi-line (/* */) comments from JSON
 // while preserving strings that might contain // or /* */
 func stripJSONComments(jsonStr string) string {
 	var result strings.Builder
+	// Pre-allocate buffer size to avoid reallocations
+	result.Grow(len(jsonStr))
+
 	inString := false
 	inSingleLineComment := false
 	inMultiLineComment := false
@@ -311,8 +322,8 @@ func (v *VSCodeIntegration) Apply(t theme.Theme) error {
 		themeColors := v.generateVSCodeColors(t)
 		terminalColors := v.generateTerminalColors(t)
 
-		// Convert to map[string]interface{} for merging
-		colors := make(map[string]interface{})
+		// Pre-allocate map with total capacity to avoid reallocations
+		colors := make(map[string]interface{}, len(themeColors)+len(terminalColors))
 
 		// Add theme colors
 		for k, v := range themeColors {
@@ -349,6 +360,18 @@ func (v *VSCodeIntegration) Apply(t theme.Theme) error {
 }
 
 func (v *VSCodeIntegration) installExtensions(themeExt VSCodeThemeExtension) error {
+	// Try to find VS Code CLI first
+	codeCmd := v.findVSCodeCLI()
+	if codeCmd == "" {
+		return fmt.Errorf("VS Code CLI not found. Please install extensions manually")
+	}
+
+	// Get installed extensions once for all checks
+	installedExts, err := v.getInstalledExtensions(codeCmd)
+	if err != nil {
+		return fmt.Errorf("failed to get installed extensions: %w", err)
+	}
+
 	// Collect all extensions to install
 	extensionsToInstall := []string{themeExt.ExtensionID}
 
@@ -377,7 +400,7 @@ func (v *VSCodeIntegration) installExtensions(themeExt VSCodeThemeExtension) err
 
 	// Install each extension
 	for _, extID := range extensionsToInstall {
-		if err := v.installExtension(extID); err != nil {
+		if err := v.installExtensionWithCache(codeCmd, extID, installedExts); err != nil {
 			return fmt.Errorf("failed to install %s: %w", extID, err)
 		}
 	}
@@ -385,20 +408,32 @@ func (v *VSCodeIntegration) installExtensions(themeExt VSCodeThemeExtension) err
 	return nil
 }
 
-func (v *VSCodeIntegration) installExtension(extensionID string) error {
-	// Check if extension is already installed
-	if v.isExtensionInstalled(extensionID) {
+func (v *VSCodeIntegration) getInstalledExtensions(codeCmd string) (map[string]bool, error) {
+	cmd := exec.Command(codeCmd, "--list-extensions")
+	output, err := cmd.Output()
+	if err != nil {
+		return nil, err
+	}
+
+	installed := make(map[string]bool)
+	extensions := strings.Split(string(output), "\n")
+	for _, ext := range extensions {
+		ext = strings.TrimSpace(ext)
+		if ext != "" {
+			installed[strings.ToLower(ext)] = true
+		}
+	}
+	return installed, nil
+}
+
+func (v *VSCodeIntegration) installExtensionWithCache(codeCmd, extensionID string, installedExts map[string]bool) error {
+	// Check if extension is already installed using the cached map
+	if installedExts[strings.ToLower(extensionID)] {
 		fmt.Printf("Extension %s is already installed\n", extensionID)
 		return nil
 	}
 
 	fmt.Printf("Installing VS Code extension: %s...\n", extensionID)
-
-	// Try to find VS Code CLI
-	codeCmd := v.findVSCodeCLI()
-	if codeCmd == "" {
-		return fmt.Errorf("VS Code CLI not found. Please install extensions manually")
-	}
 
 	// Install the extension
 	cmd := exec.Command(codeCmd, "--install-extension", extensionID, "--force")
@@ -409,28 +444,6 @@ func (v *VSCodeIntegration) installExtension(extensionID string) error {
 
 	fmt.Printf("Successfully installed %s\n", extensionID)
 	return nil
-}
-
-func (v *VSCodeIntegration) isExtensionInstalled(extensionID string) bool {
-	codeCmd := v.findVSCodeCLI()
-	if codeCmd == "" {
-		return false
-	}
-
-	cmd := exec.Command(codeCmd, "--list-extensions")
-	output, err := cmd.Output()
-	if err != nil {
-		return false
-	}
-
-	installedExtensions := strings.Split(string(output), "\n")
-	for _, installed := range installedExtensions {
-		if strings.EqualFold(strings.TrimSpace(installed), extensionID) {
-			return true
-		}
-	}
-
-	return false
 }
 
 func (v *VSCodeIntegration) findVSCodeCLI() string {

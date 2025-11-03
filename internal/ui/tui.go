@@ -71,6 +71,9 @@ func initialModel() model {
 	themes := theme.GetBuiltInThemes()
 	apps := integrations.GetAllIntegrations()
 
+	// Cache VS Code variants during initialization to avoid repeated calls
+	vscodeVariants := integrations.GetVSCodeVariants()
+
 	return model{
 		baseThemes:        baseThemes,
 		themes:            themes,
@@ -81,6 +84,7 @@ func initialModel() model {
 		selectedApps:      make(map[int]bool),
 		cursor:            0,
 		state:             selectingTheme,
+		vscodeVariants:    vscodeVariants,
 	}
 }
 
@@ -170,8 +174,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 
 				if vscodeSelected {
-					// Get available VS Code variants
-					m.vscodeVariants = integrations.GetVSCodeVariants()
+					// Use cached VS Code variants
 					if len(m.vscodeVariants) > 1 {
 						// Multiple variants available, show selection
 						m.cursor = 0
