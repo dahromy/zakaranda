@@ -291,12 +291,16 @@ func (m model) applyThemes() tea.Cmd {
 					for variantIdx, variantSelected := range m.selectedVSCVariants {
 						if variantSelected && variantIdx < len(m.vscodeVariants) {
 							variant := m.vscodeVariants[variantIdx]
-							vscode.SetVariant(variant)
 
-							if !vscode.IsInstalled() {
+							// Check if this specific variant is installed
+							_, appErr := os.Stat(variant.AppPath)
+							_, configErr := os.Stat(variant.ConfigDir)
+							if appErr != nil && configErr != nil {
 								results = append(results, fmt.Sprintf("⚠️  %s: Not installed or not found", variant.Name))
 								continue
 							}
+
+							vscode.SetVariant(variant)
 
 							err := vscode.Apply(theme)
 							if err != nil {
