@@ -436,11 +436,26 @@ func GetBuiltInBaseThemes() []BaseTheme {
 	}
 }
 
+var (
+	// Cache for built-in themes to avoid rebuilding on every call
+	builtInThemesCache []Theme
+)
+
 // GetBuiltInThemes returns all built-in themes (flattened from base themes)
 func GetBuiltInThemes() []Theme {
+	// Return cached themes if available
+	if builtInThemesCache != nil {
+		return builtInThemesCache
+	}
+	
 	baseThemes := GetBuiltInBaseThemes()
-	var themes []Theme
-
+	// Pre-calculate total number of themes to avoid slice reallocations
+	totalThemes := 0
+	for _, baseTheme := range baseThemes {
+		totalThemes += len(baseTheme.Variants)
+	}
+	
+	themes := make([]Theme, 0, totalThemes)
 	for _, baseTheme := range baseThemes {
 		for _, variant := range baseTheme.Variants {
 			themes = append(themes, Theme{
@@ -450,6 +465,8 @@ func GetBuiltInThemes() []Theme {
 			})
 		}
 	}
-
+	
+	// Cache the result
+	builtInThemesCache = themes
 	return themes
 }

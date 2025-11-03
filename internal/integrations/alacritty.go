@@ -168,8 +168,9 @@ func (a *AlacrittyIntegration) ensureThemeRepo() error {
 	// Check if theme repository already exists
 	repoPath := filepath.Join(a.themesPath, "alacritty")
 	if _, err := os.Stat(repoPath); err == nil {
-		// Repository exists, try to update it
-		return a.updateThemeRepo(repoPath)
+		// Repository exists, skip update to avoid slow git operations
+		// User can manually update if needed
+		return nil
 	}
 
 	// Repository doesn't exist, clone it
@@ -182,9 +183,10 @@ func (a *AlacrittyIntegration) cloneThemeRepo() error {
 		return fmt.Errorf("failed to create themes directory: %w", err)
 	}
 
-	// Clone the repository
+	// Clone the repository with minimal depth for faster cloning
 	cmd := exec.Command("git", "clone",
 		"--depth", "1",
+		"--single-branch",
 		"https://github.com/alacritty/alacritty-theme",
 		filepath.Join(a.themesPath, "alacritty"))
 
@@ -193,13 +195,6 @@ func (a *AlacrittyIntegration) cloneThemeRepo() error {
 		return fmt.Errorf("failed to clone theme repository: %w\nOutput: %s", err, string(output))
 	}
 
-	return nil
-}
-
-func (a *AlacrittyIntegration) updateThemeRepo(repoPath string) error {
-	// Try to pull latest changes (silently fail if not possible)
-	cmd := exec.Command("git", "-C", repoPath, "pull", "--ff-only")
-	_ = cmd.Run() // Ignore errors - we can work with existing themes
 	return nil
 }
 
